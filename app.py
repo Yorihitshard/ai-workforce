@@ -1,5 +1,5 @@
 import streamlit as st
-import PyMuPDF  # PyMuPDF (fitz)
+import fitz  # PyMuPDF 
 import random
 import pandas as pd
 import plotly.express as px
@@ -18,7 +18,7 @@ st.markdown("---")
 # EXTRAER TEXTO PDF
 # =========================
 def extract_text(pdf_file):
-    doc = PyMuPDF.open(stream=pdf_file.read(), filetype="pdf")
+    doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
     text = ""
     for page in doc:
         text += page.get_text().lower()
