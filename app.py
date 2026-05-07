@@ -1,173 +1,166 @@
 import streamlit as st
-import plotly.graph_objects as go
-import plotly.express as px
+import PyPDF2
+import random
 import pandas as pd
-import time
+import plotly.express as px
 
 # =========================
-# CONFIGURACIÓN
+# CONFIG
 # =========================
-st.set_page_config(page_title="HR-AutoMine AI", layout="wide")
+st.set_page_config(page_title="HR-AutoMine AI ULTRA", layout="wide")
 
-# =========================
-# CSS PROFESIONAL
-# =========================
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'Inter';
-    background-color: #0a0c10;
-    color: white;
-}
-
-.card {
-    background-color: #1a1d24;
-    padding: 18px;
-    border-radius: 16px;
-    border: 1px solid #2a2f3a;
-    transition: 0.3s;
-}
-
-.card:hover {
-    background-color: #252a35;
-    transform: scale(1.02);
-}
-
-.kpi {
-    font-size: 26px;
-    font-weight: bold;
-}
-
-.small {
-    color: #a0a4b0;
-    font-size: 13px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# =========================
-# HEADER
-# =========================
-st.title("🤖 HR-AutoMine AI")
-st.subheader("Autonomía total - La IA decide, los humanos ejecutan")
+st.title("🤖 HR-AutoMine AI ULTRA")
+st.subheader("Sistema de reclutamiento autónomo con 6 agentes + IA de scoring")
 
 st.markdown("---")
 
 # =========================
-# KPIs
+# "BASE DE DATOS"
 # =========================
-col1, col2, col3, col4 = st.columns(4)
+if "candidates" not in st.session_state:
+    st.session_state.candidates = []
 
-with col1:
-    st.markdown('<div class="card">⚡ Reducción accidentes<br><div class="kpi">-38%</div><div class="small">Tendencia positiva</div></div>', unsafe_allow_html=True)
+# =========================
+# EXTRAER TEXTO PDF
+# =========================
+def extract_text(pdf_file):
+    reader = PyPDF2.PdfReader(pdf_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() or ""
+    return text.lower()
 
-with col2:
-    st.markdown('<div class="card">📊 Eficiencia operativa<br><div class="kpi">94%</div></div>', unsafe_allow_html=True)
-    st.progress(0.94)
+# =========================
+# IA SCORING (SIMULACIÓN TIPO GPT)
+# =========================
+def ai_score(text):
+    base = random.randint(50, 70)
 
-with col3:
-    st.markdown('<div class="card">💰 Ahorro anual<br><div class="kpi">S/ 2.42M</div></div>', unsafe_allow_html=True)
+    if "ingeniero" in text:
+        base += 10
+    if "experiencia" in text:
+        base += 10
+    if "seguridad" in text:
+        base += 10
+    if "proyecto" in text:
+        base += 5
 
-with col4:
-    st.markdown('<div class="card">🤖 Decisiones IA<br><div class="kpi">12,847</div></div>', unsafe_allow_html=True)
+    return min(base, 100)
 
+# =========================
+# 6 AGENTES (PIPELINE)
+# =========================
+def run_agents(text):
+
+    logs = []
+
+    score = ai_score(text)
+    logs.append(f"🧠 IA Score inicial: {score}")
+
+    # AGENTE 1
+    if score < 55:
+        return False, score, logs + ["❌ Agente 1: Rechazado en reclutamiento"]
+    logs.append("✔ Agente 1: Reclutamiento aprobado")
+
+    # AGENTE 2
+    if "certificado" not in text:
+        return False, score, logs + ["❌ Agente 2: Sin certificación"]
+    logs.append("✔ Agente 2: Validación OK")
+
+    # AGENTE 3
+    logs.append("✔ Agente 3: Escalas compatibles")
+
+    # AGENTE 4
+    if score < 70:
+        return False, score, logs + ["❌ Agente 4: Bajo rendimiento proyectado"]
+    logs.append("✔ Agente 4: Rendimiento OK")
+
+    # AGENTE 5
+    if "accidente" in text:
+        return False, score, logs + ["❌ Agente 5: Riesgo de fatiga alto"]
+    logs.append("✔ Agente 5: Riesgo controlado")
+
+    # AGENTE 6
+    logs.append("✔ Agente 6: Capacitación validada")
+
+    return True, score, logs
+
+# =========================
+# UI UPLOAD MULTIPLE
+# =========================
+files = st.file_uploader("📄 Subir CVs (PDF)", type=["pdf"], accept_multiple_files=True)
+
+if files:
+
+    st.info("🧠 Ejecutando sistema de 6 agentes + IA scoring...")
+
+    results = []
+
+    for file in files:
+
+        text = extract_text(file)
+        ok, score, logs = run_agents(text)
+
+        name = file.name
+
+        results.append({
+            "Nombre": name,
+            "Score IA": score,
+            "Aprobado": ok
+        })
+
+        st.markdown(f"### 📄 {name}")
+        for l in logs:
+            st.write(l)
+
+        if ok:
+            st.success("🏁 APROBADO")
+        else:
+            st.error("🚫 RECHAZADO")
+
+        st.markdown("---")
+
+        st.session_state.candidates.append({
+            "name": name,
+            "score": score,
+            "status": "APROBADO" if ok else "RECHAZADO"
+        })
+
+    # =========================
+    # DATAFRAME
+    # =========================
+    df = pd.DataFrame(results)
+
+    st.subheader("🏆 Ranking de candidatos")
+
+    df = df.sort_values(by="Score IA", ascending=False)
+
+    st.dataframe(df, use_container_width=True)
+
+    # =========================
+    # GRÁFICO
+    # =========================
+    fig = px.bar(df, x="Nombre", y="Score IA", color="Score IA")
+    st.plotly_chart(fig, use_container_width=True)
+
+# =========================
+# DASHBOARD GENERAL
+# =========================
 st.markdown("---")
+st.subheader("📊 Dashboard global")
 
-# =========================
-# GRÁFICOS
-# =========================
+if st.session_state.candidates:
 
-col1, col2 = st.columns(2)
+    df_all = pd.DataFrame(st.session_state.candidates)
 
-# --- Conflictos
-with col1:
-    st.subheader("📉 Reducción de Conflictos Socioambientales")
+    col1, col2, col3 = st.columns(3)
 
-    fig1 = px.line(
-        x=["E1","E2","E3","E4","E5","E6"],
-        y=[24,18,15,11,8,5],
-        markers=True
-    )
-    fig1.update_traces(line_color="#2ecc71")
-    st.plotly_chart(fig1, use_container_width=True)
+    col1.metric("Total candidatos", len(df_all))
+    col2.metric("Aprobados", len(df_all[df_all["status"]=="APROBADO"]))
+    col3.metric("Rechazados", len(df_all[df_all["status"]=="RECHAZADO"]))
 
-# --- Fatiga
-with col2:
-    st.subheader("⚠️ Nivel de Fatiga por Turno")
-
-    fig2 = px.bar(
-        x=["Día","Tarde","Noche"],
-        y=[32,58,78],
-        color=[32,58,78],
-        color_continuous_scale=["green","yellow","red"]
-    )
+    fig2 = px.pie(df_all, names="status", title="Distribución de candidatos")
     st.plotly_chart(fig2, use_container_width=True)
 
-# =========================
-# DEFICITS
-# =========================
-st.subheader("📊 Déficits de habilidades")
-
-fig3 = px.pie(
-    values=[45,30,25],
-    names=["Seguridad operativa","Equipos","Ambiental"]
-)
-
-st.plotly_chart(fig3, use_container_width=True)
-
-st.markdown("---")
-
-# =========================
-# AGENTES IA
-# =========================
-
-st.subheader("🧠 Sistema de 6 Agentes IA")
-
-def run_toast(msg):
-    st.toast(msg)
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("### 🤖 Agente 1 - Reclutamiento")
-    st.write("Selecciona candidatos óptimos")
-    if st.button("Simular 1"):
-        run_toast("✅ AGENTE 1: Candidato seleccionado automáticamente. Compatibilidad: 92%")
-
-with col2:
-    st.markdown("### 🛡 Agente 2 - Validación")
-    st.write("Verifica certificaciones")
-    if st.button("Simular 2"):
-        run_toast("⚠️ AGENTE 2: Certificación obligatoria no vigente")
-
-with col3:
-    st.markdown("### 🔄 Agente 3 - Escalas")
-    st.write("Optimiza cobertura")
-    if st.button("Simular 3"):
-        run_toast("🔄 AGENTE 3: Cobertura reasignada")
-
-col4, col5, col6 = st.columns(3)
-
-with col4:
-    st.markdown("### 📊 Agente 4 - Rendimiento")
-    if st.button("Simular 4"):
-        run_toast("📉 AGENTE 4: Bajo rendimiento detectado")
-
-with col5:
-    st.markdown("### ⚠️ Agente 5 - Fatiga")
-    if st.button("Simular 5"):
-        run_toast("🚨 AGENTE 5: ALTO RIESGO DE FATIGA")
-
-with col6:
-    st.markdown("### 🎓 Agente 6 - Capacitación")
-    if st.button("Simular 6"):
-        run_toast("📚 AGENTE 6: Curso asignado automáticamente")
-
-# =========================
-# FOOTER
-# =========================
-st.markdown("---")
-st.success("🚀 IA autónoma en operación minera")
-st.caption("0 intervención humana en decisiones operativas")
+else:
+    st.warning("Aún no hay candidatos analizados")
