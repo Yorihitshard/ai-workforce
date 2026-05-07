@@ -2,66 +2,73 @@ import streamlit as st
 
 st.set_page_config(page_title="AI Workforce System", layout="wide")
 
-st.title("🤖 AI WORKFORCE SYSTEM")
-st.subheader("Sistema de 6 agentes IA para gestión de personal")
+# HEADER PRO
+st.markdown("""
+# 🤖 AI WORKFORCE SYSTEM
+### Sistema inteligente de reclutamiento y gestión de talento
+""")
 
 st.markdown("---")
 
-# INPUTS
-col1, col2 = st.columns(2)
+# INPUTS EN COLUMNAS
+col1, col2, col3 = st.columns(3)
 
 with col1:
     nombre = st.text_input("👤 Nombre del candidato")
-    exp = st.number_input("📊 Años de experiencia", 0, 40, 1)
 
 with col2:
-    cert = st.selectbox("🎓 Certificación de seguridad", ["Sí", "No"])
-    horas = st.number_input("⏱ Horas trabajadas por día", 0, 24, 8)
+    exp = st.number_input("📊 Años de experiencia", 0, 40, 1)
+
+with col3:
+    cert = st.selectbox("🎓 Certificación", ["Sí", "No"])
+
+horas = st.slider("⏱ Horas trabajadas por día", 0, 24, 8)
 
 st.markdown("---")
 
-if st.button("🚀 Ejecutar sistema de agentes"):
+# BOTÓN PRINCIPAL
+if st.button("🚀 Ejecutar análisis de IA"):
 
-    st.markdown("## 🔄 Flujo de 6 Agentes IA")
+    st.markdown("## 🧠 Panel de Agentes IA")
+
+    # KPI CARDS
+    col1, col2, col3 = st.columns(3)
 
     score = 50 + exp * 5 + (30 if cert == "Sí" else 0)
 
-    st.success(f"🧠 Reclutamiento → Score: {score}")
+    estado = "APROBADO" if score >= 70 else "RECHAZADO"
 
-    if score >= 85:
-        estado = "APTO"
-    elif score >= 70:
-        estado = "OBSERVADO"
-    else:
-        estado = "NO APTO"
-
-    st.info(f"📋 Validación → {estado}")
-
-    if estado == "APTO":
-        st.write("📅 Escalas → Asignado normal")
-    elif estado == "OBSERVADO":
-        st.write("📅 Escalas → Supervisión")
-    else:
-        st.write("📅 Escalas → No asignado")
-
-    if exp < 2:
-        st.write("📊 Desempeño → Bajo")
-    elif exp < 5:
-        st.write("📊 Desempeño → Medio")
-    else:
-        st.write("📊 Desempeño → Alto")
-
-    if horas >= 12:
-        st.warning("⚠️ Fatiga → ALTO RIESGO")
-    elif horas >= 9:
-        st.warning("⚠️ Fatiga → Riesgo medio")
-    else:
-        st.success("⚠️ Fatiga → Riesgo bajo")
-
-    if cert == "No":
-        st.error("🎓 Capacitación → Obligatoria")
-    else:
-        st.success("🎓 Capacitación → Opcional")
+    col1.metric("Score IA", score)
+    col2.metric("Estado", estado)
+    col3.metric("Riesgo", "BAJO" if horas < 10 else "ALTO")
 
     st.markdown("---")
-    st.success("🏁 SISTEMA COMPLETADO")
+
+    # AGENTES VISUALES
+    st.info("🧠 Agente 1: Reclutamiento → Analizando CV")
+    st.success(f"📋 Agente 2: Validación → {estado}")
+
+    if estado == "APROBADO":
+        st.success("📅 Agente 3: Escalas → Asignado a operación")
+    else:
+        st.error("📅 Agente 3: Escalas → No asignado")
+
+    if exp < 2:
+        st.warning("📊 Agente 4: Desempeño → Bajo")
+    elif exp < 5:
+        st.info("📊 Agente 4: Desempeño → Medio")
+    else:
+        st.success("📊 Agente 4: Desempeño → Alto")
+
+    if horas >= 12:
+        st.error("⚠️ Agente 5: Fatiga → ALTO RIESGO")
+    else:
+        st.success("⚠️ Agente 5: Fatiga → Controlado")
+
+    if cert == "No":
+        st.warning("🎓 Agente 6: Capacitación → Obligatoria")
+    else:
+        st.success("🎓 Agente 6: Capacitación → OK")
+
+    st.markdown("---")
+    st.success("✅ SISTEMA FINALIZADO - ANÁLISIS COMPLETO")
